@@ -79,7 +79,7 @@ struct big_integer {
 
 private:
 	friend signed char compare_signed(big_integer const& a, big_integer const& b);
-	datavec data;
+	num_storage data;
 	big_integer(datavec data);
 	bool sign;
 };

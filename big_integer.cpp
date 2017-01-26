@@ -325,8 +325,8 @@ std::pair<datavec, datavec> unsigned_divide(datavec const & lhs, datavec const &
 
 datavec to_complement(big_integer const & src) {
 	datavec rs;
-	rs.reserve(src.data.size() + 1);
-	rs.assign(src.data.begin(), src.data.end());
+	rs.reserve(src.data().size() + 1);
+	rs.assign(src.data().begin(), src.data().end());
 	if (src.sign) {
 		for (size_t i = 0; i < rs.size(); i++) {
 			rs[i] ^= bitmask32;
@@ -359,15 +359,15 @@ datavec bitop(datavec const & lhs, datavec const & rhs, const eint trans) { // t
 
 big_integer from_complement(datavec const & data) {
 	big_integer res(0);
-	res.data = data;
-	if (res.data.back() & (1 << 31)) {
-		for (size_t i = 0; i < res.data.size(); i++) {
-			res.data[i] ^= bitmask32;
+	res.data() = data;
+	if (res.data().back() & (1 << 31)) {
+		for (size_t i = 0; i < res.data().size(); i++) {
+			res.data()[i] ^= bitmask32;
 		}
-		res.data = sum(res.data, datavec(1, 1));
+		res.data() = sum(res.data(), datavec(1, 1));
 		res.sign = true;
 	}
-	trim_data(res.data);
+	trim_data(res.data());
 	return res;
 }
 
@@ -376,12 +376,12 @@ big_integer::big_integer() {
 }
 
 big_integer::big_integer(big_integer const& other) {
-	data = other.data;
+	data() = other.data();
 	sign = other.sign;
 }
 
 bool big_integer::is_zero() const {
-	return this->data.size() == 1 && this->data[0] == 0;
+	return this->data().size() == 1 && this->data()[0] == 0;
 }
 
 /*big_integer::big_integer(big_integer & other) {
@@ -390,14 +390,14 @@ bool big_integer::is_zero() const {
  }*/
 
 big_integer::big_integer(datavec new_data) {
-	swap(data, new_data);
+	swap(data(), new_data);
 	sign = false;
 }
 
 big_integer::big_integer(int a) {
 	xint al = a;
 	sign = (al < 0);
-	data.assign(1, std::llabs(al) & bitmask32);
+	data().assign(1, std::llabs(al) & bitmask32);
 }
 
 big_integer::big_integer(std::string const& str) {
@@ -437,9 +437,9 @@ big_integer::big_integer(std::string const& str) {
 			result *= POWT;
 			result += carry;
 		}
-		swap(data, result.data);
+		swap(data(), result.data());
 	}
-	trim_data(data);
+	trim_data(data());
 }
 
 /*big_integer & big_integer::operator =(big_integer & other) {
@@ -449,7 +449,7 @@ big_integer::big_integer(std::string const& str) {
  }*/
 
 big_integer & big_integer::operator =(big_integer const & other) {
-	data = other.data;
+	data() = other.data();
 	sign = other.sign;
 	return *this;
 }
@@ -463,7 +463,7 @@ big_integer & big_integer::operator +=(big_integer const & rhs) {
 		this->sign = !(this->is_zero() || this->sign);
 		return *this;
 	}
-	this->data = sum(this->data, rhs.data);
+	this->data() = sum(this->data(), rhs.data());
 //cdb << "FYI RESULT IS " << *this << "\n";
 	return *this;
 }
@@ -475,43 +475,43 @@ big_integer & big_integer::operator -=(big_integer const & rhs) {
 		this->sign = !(this->is_zero() || this->sign);
 		return *this;
 	}
-	if (compare(this->data, rhs.data) < 0) {
-		this->data = subtract(rhs.data, this->data);
+	if (compare(this->data(), rhs.data()) < 0) {
+		this->data() = subtract(rhs.data(), this->data());
 		this->sign = !(this->is_zero() || this->sign);
 	} else {
-		this->data = subtract(this->data, rhs.data);
+		this->data() = subtract(this->data(), rhs.data());
 	}
 //cdb << "SUB RESULT IS " << *this << "\n";
 	return *this;
 }
 
 big_integer & big_integer::operator *=(big_integer const & rhs) {
-	this->data = multiply_switch(this->data, rhs.data);
+	this->data() = multiply_switch(this->data(), rhs.data());
 	this->sign = this->sign ^ rhs.sign;
 	return *this;
 }
 
 big_integer & big_integer::operator /=(big_integer const & rhs) {
 	if (rhs.is_zero()) {
-		int num_inf = 1 / rhs.data.back();
+		int num_inf = 1 / rhs.data().back();
 		*this = big_integer(num_inf);
 		return *this;
 	}
 //cdb << "DIVIDING " << *this << "\nDIVISOR  " << rhs << "\n";
-	auto rs = unsigned_divide(this->data, rhs.data);
-	swap(this->data, rs.first);
+	auto rs = unsigned_divide(this->data(), rhs.data());
+	swap(this->data(), rs.first);
 	this->sign = this->sign ^ rhs.sign;
 	return *this;
 }
 
 big_integer & big_integer::operator %=(big_integer const & rhs) {
 	if (rhs.is_zero()) {
-		int num_inf = 1 / rhs.data.back();
+		int num_inf = 1 / rhs.data().back();
 		*this = big_integer(num_inf);
 		return *this;
 	}
-	auto rs = unsigned_divide(this->data, rhs.data);
-	swap(this->data, rs.second);
+	auto rs = unsigned_divide(this->data(), rhs.data());
+	swap(this->data(), rs.second);
 	return *this;
 }
 
@@ -540,20 +540,20 @@ big_integer & big_integer::operator ^=(big_integer const & rhs) {
 
 big_integer & big_integer::operator <<=(int rhs) {
 	if (rhs < 0) {
-		this->data = rshift(this->data, -xint(rhs), this->sign);
+		this->data() = rshift(this->data(), -xint(rhs), this->sign);
 	} else {
-		this->data = lshift(this->data, rhs);
+		this->data() = lshift(this->data(), rhs);
 	}
 	return *this;
 }
 
 big_integer & big_integer::operator >>=(int rhs) {
 	if (rhs < 0) {
-		this->data = lshift(this->data, -xint(rhs));
+		this->data() = lshift(this->data(), -xint(rhs));
 	} else {
-		this->data = rshift(this->data, rhs, this->sign);
-		if (this->data.size() == 1 && this->sign && this->data[0] == 0) {
-			this->data[0] = -1;
+		this->data() = rshift(this->data(), rhs, this->sign);
+		if (this->data().size() == 1 && this->sign && this->data()[0] == 0) {
+			this->data()[0] = -1;
 		}
 	}
 	return *this;
@@ -653,7 +653,7 @@ bint compare_signed(big_integer const& a, big_integer const& b) {
 		if (a.sign != b.sign) {
 			return a.sign ? 1 : -1;
 		} else {
-			return compare(a.data, b.data) * (a.sign ? -1 : 1);
+			return compare(a.data(), b.data()) * (a.sign ? -1 : 1);
 		}
 	}
 }
@@ -688,7 +688,7 @@ std::string to_string(big_integer const& a) {
 	if (a.is_zero()) {
 		return std::string("0");
 	}
-	dpair tmp = { a.data, 0 };
+	dpair tmp = { a.data(), 0 };
 	while (tmp.first.size() > 1 || tmp.first.front() > 0) {
 		tmp = divide(tmp.first, POWT);
 		div_t temp_z = div(tmp.second, 10);
