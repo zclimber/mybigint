@@ -13,48 +13,21 @@ typedef unsigned long long uxint; // extra unsigned int - 64 bits
 typedef long long xint; // extra int - 64 bits
 typedef signed char bint; // byte int
 
-//#define DATAVEC_VECTOR
-
-#ifdef DATAVEC_VECTOR
-
 typedef std::vector<eint> datavec;
 
-#else
-
-struct datavec {
-	std::vector<eint> storage;
-	datavec();
-	datavec(const datavec & dat);
-	datavec(size_t size, eint value);
-	datavec(const eint * start, const eint * finish);
-	datavec& operator=(const datavec& dat);
-	void assign(size_t size, eint value);
-	void assign(const eint * start, const eint * finish);
-	~datavec();
-	void externalize();
-	eint& back();
-	const eint& back() const;
-	eint& front();
-	const eint& front() const;
-	eint & operator[](size_t __n);
-	const eint & operator[](size_t __n) const;
-	void pop_back();
-	void push_back(eint value);
-	void append(const eint * start, const eint * finish);
-	void reserve(size_t new_capacity);
-	void resize(size_t new_size);
-	void resize(size_t new_size, eint new_value);
-	void shrink_to_fit();
-	const eint * begin() const;
-	const eint * end() const;
-	size_t size() const;
-	size_t capacity() const;
-	friend void swap(datavec &a, datavec &b);
+struct num_storage {
+	datavec data;
+	const datavec & get_readable() const;
+	datavec & get_assignable();
+	datavec & get_modifiable();
+	datavec get_copy() const;
+	datavec & operator()() {
+		return data;
+	}
+	const datavec & operator()() const {
+		return data;
+	}
 };
-
-void swap(datavec &a, datavec &b);
-
-#endif
 
 struct big_integer {
 	big_integer(); //

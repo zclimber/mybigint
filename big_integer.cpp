@@ -30,11 +30,7 @@ datavec lshift(datavec const & lhs, size_t shiftsize) {
 	res.resize(shiftsize >> 5, 0);
 	shiftsize &= 31;
 	if (shiftsize == 0) {
-#ifdef DATAVEC_VECTOR
 		res.insert(res.end(), lhs.begin(), lhs.end());
-#else
-		res.append(lhs.begin(), lhs.end());
-#endif
 	} else {
 		uxint carry = 0;
 		for (size_t i = 0; i < lhs.size(); i++) {
@@ -58,11 +54,7 @@ datavec rshift(datavec const & lhs, size_t shiftsize, bool rounding_mode) {
 	datavec res;
 	res.reserve(lhs.size() - discard); // 2^5 == 32
 	if (shiftsize == 0) {
-#ifdef DATAVEC_VECTOR
 		res.insert(res.end(), lhs.begin() + discard, lhs.end());
-#else
-		res.append(lhs.begin() + discard, lhs.end());
-#endif
 	} else {
 		uxint carry = 0;
 		if (rounding_mode) {
@@ -721,110 +713,4 @@ std::string to_string(big_integer const& a) {
 
 std::ostream& operator<<(std::ostream& s, big_integer const& a) {
 	return s << to_string(a);
-}
-
-datavec::datavec() {
-}
-
-datavec::datavec(const datavec& dat) {
-	storage = dat.storage;
-}
-
-datavec::datavec(size_t size, eint value) {
-	storage = std::vector<eint>(size, value);
-}
-
-datavec::datavec(const eint* start, const eint* finish) {
-	storage = std::vector<eint>(start, finish);
-}
-
-datavec& datavec::operator =(const datavec& dat) {
-	storage = dat.storage;
-	return *this;
-}
-
-void datavec::assign(size_t size, eint value) {
-	storage.assign(size, value);
-}
-
-void datavec::assign(const eint* start, const eint* finish) {
-	storage.assign(start, finish);
-}
-
-datavec::~datavec() {
-}
-
-void datavec::externalize() {
-}
-
-eint& datavec::back() {
-	return storage.back();
-}
-
-const eint& datavec::back() const {
-	return storage.back();
-}
-
-eint& datavec::front() {
-	return storage.front();
-}
-
-const eint& datavec::front() const {
-	return storage.front();
-}
-
-eint& datavec::operator [](size_t __n) {
-	return storage[__n];
-}
-
-const eint& datavec::operator [](size_t __n) const {
-	return storage[__n];
-}
-
-void datavec::pop_back() {
-	storage.pop_back();
-}
-
-void datavec::push_back(eint value) {
-	storage.push_back(value);
-}
-
-void datavec::append(const eint* start, const eint* finish) {
-	storage.insert(storage.end(), start, finish);
-}
-
-void datavec::reserve(size_t new_capacity) {
-	storage.reserve(new_capacity);
-}
-
-void datavec::resize(size_t new_size) {
-	storage.resize(new_size);
-}
-
-void datavec::resize(size_t new_size, eint new_value) {
-	storage.resize(new_size, new_value);
-}
-
-void datavec::shrink_to_fit() {
-	storage.shrink_to_fit();
-}
-
-const eint* datavec::begin() const {
-	return storage.begin().base();
-}
-
-const eint* datavec::end() const {
-	return storage.end().base();
-}
-
-size_t datavec::size() const {
-	return storage.size();
-}
-
-size_t datavec::capacity() const {
-	return storage.capacity();
-}
-
-void swap(datavec &a, datavec &b) {
-	swap(a.storage, b.storage);
 }
