@@ -8,12 +8,16 @@
 
 #include <cassert>
 
+#include "cow_vector.h"
+
 typedef unsigned int eint; // extended unsigned int
 typedef unsigned long long uxint; // extra unsigned int - 64 bits
 typedef long long xint; // extra int - 64 bits
 typedef signed char bint; // byte int
 
-typedef std::vector<eint> datavec;
+//typedef std::vector<eint> datavec;
+
+typedef cow_vector<eint, 5> datavec;
 
 struct num_storage {
 	datavec data;

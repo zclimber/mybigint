@@ -8,6 +8,487 @@
 #include <random>
 #include <gtest/gtest.h>
 
+#include "cow_vector.h"
+#include <vector>
+#include <iostream>
+
+template<class T>
+std::ostream& operator<<(std::ostream& stream, const std::vector<T> & v) {
+	std::string str("[");
+	for (const T & t : v) {
+		str += std::to_string(t) + ", ";
+	}
+	str.pop_back();
+	str.back() = ']';
+	return stream << str << "\n";
+}
+
+template<class T, unsigned int S>
+std::ostream& operator<<(std::ostream& stream, const cow_vector<T, S> & cw) {
+	cw.assert_correctness();
+	if (cw.is_local()) {
+		std::string str("[");
+		for (eint i = 0; i < cw.local_size; i++) {
+			str += std::to_string(cw.local_data[i]) + ", ";
+		}
+		str.pop_back();
+		str.back() = ']';
+		return stream << str << "\n";
+	} else {
+		return stream << *cw.rem_data;
+	}
+}
+
+TEST(cow, constr_def) {
+	auto cw = cow_vector<int, 10>();
+	std::vector<int> vv;
+	EXPECT_TRUE(cw.compare(vv));
+}
+
+TEST(cow, constr_size) {
+	auto cw = cow_vector<int, 10>(5);
+	std::vector<int> vv(5);
+	EXPECT_TRUE(cw.compare(vv));
+	auto cw2 = cow_vector<int, 10>(15);
+	std::vector<int> vv2(15);
+	EXPECT_TRUE(cw2.compare(vv2));
+}
+
+TEST(cow, constr_size_elem) {
+	std::vector<int> vv(5, 1);
+	std::vector<int> vv2(15, 2);
+	auto cw = cow_vector<int, 10>(5, 1);
+	auto cw2 = cow_vector<int, 10>(15, 2);
+	EXPECT_TRUE(cw.compare(vv));
+	EXPECT_TRUE(cw2.compare(vv2));
+}
+
+TEST(cow, constr_copy) {
+	std::vector<int> vv(5, 1);
+	std::vector<int> vv2(15, 2);
+
+	auto cw = cow_vector<int, 10>(5, 1);
+	auto cw2 = cow_vector<int, 10>(15, 2);
+
+	auto cww = cow_vector<int, 10>(cw);
+	auto cww2 = cow_vector<int, 10>(cw2);
+
+	EXPECT_TRUE(cww.compare(vv));
+	EXPECT_TRUE(cww2.compare(vv2));
+
+	EXPECT_TRUE(cw.same_remote(cww));
+	EXPECT_TRUE(cw2.same_remote(cww2));
+}
+
+TEST(cow, constr_move) {
+	auto cww = cow_vector<int, 10>(cow_vector<int, 10>(5, 1));
+	std::vector<int> vv(5, 1);
+	EXPECT_TRUE(cww.compare(vv));
+	auto cww2 = cow_vector<int, 10>(cow_vector<int, 10>(15, 2));
+	std::vector<int> vv2(15, 2);
+	EXPECT_TRUE(cww2.compare(vv2));
+}
+
+TEST(cow, assign_oth_copy) {
+	std::vector<int> vv(5, 1);
+	std::vector<int> vv2(15, 2);
+
+	auto cw = cow_vector<int, 10>(5, 1);
+	auto cw2 = cow_vector<int, 10>(15, 2);
+
+	auto cww = cow_vector<int, 10>(7);
+	cww = cw;
+	EXPECT_TRUE(cww.compare(vv));
+	EXPECT_TRUE(cww.same_remote(cw));
+
+	auto cww2 = cow_vector<int, 10>(71, 6);
+	cww2 = cw2;
+	EXPECT_TRUE(cww2.compare(vv2));
+	EXPECT_TRUE(cww2.same_remote(cw2));
+
+	cww = cw2;
+	EXPECT_TRUE(cww.compare(vv2));
+
+	cww2 = cw;
+	EXPECT_TRUE(cww2.compare(vv));
+
+	EXPECT_TRUE(cw.compare(vv));
+	EXPECT_TRUE(cw2.compare(vv2));
+}
+
+TEST(cow, assign_oth_move) {
+//	auto cw = cow_vector<int, 10>(5, 1);
+	auto cww = cow_vector<int, 10>(7);
+	cww = cow_vector<int, 10>(5, 1);
+	std::vector<int> vv(5, 1);
+	EXPECT_TRUE(cww.compare(vv));
+//	auto cw2 = cow_vector<int, 10>(15, 2);
+	auto cww2 = cow_vector<int, 10>(71, 6);
+	cww2 = cow_vector<int, 10>(15, 2);
+	std::vector<int> vv2(15, 2);
+	EXPECT_TRUE(cww2.compare(vv2));
+
+	cww = cow_vector<int, 10>(15, 2);
+	EXPECT_TRUE(cww.compare(vv2));
+
+	cww2 = cow_vector<int, 10>(5, 1);
+	EXPECT_TRUE(cww2.compare(vv));
+}
+
+TEST(cow, assign_copies) {
+	auto cww = cow_vector<int, 10>(7);
+	cww.assign(5, 1);
+	std::vector<int> vv(5, 1);
+	EXPECT_TRUE(cww.compare(vv));
+	auto cww2 = cow_vector<int, 10>(71, 6);
+	cww2.assign(15, 2);
+	std::vector<int> vv2(15, 2);
+	EXPECT_TRUE(cww2.compare(vv2));
+
+	cww.assign(15, 2);
+	EXPECT_TRUE(cww.compare(vv2));
+
+	cww2.assign(5, 1);
+	EXPECT_TRUE(cww2.compare(vv));
+}
+
+TEST(cow, assign_range) {
+	std::vector<int> vv(5, 1);
+	std::vector<int> vv2(15, 2);
+	auto cww = cow_vector<int, 10>(7);
+	cww.assign(vv.begin(), vv.end());
+	EXPECT_TRUE(cww.compare(vv));
+	auto cww2 = cow_vector<int, 10>(71, 6);
+	cww2.assign(vv2.begin(), vv2.end());
+	EXPECT_TRUE(cww2.compare(vv2));
+
+	cww.assign(vv2.begin(), vv2.end());
+	EXPECT_TRUE(cww.compare(vv2));
+
+	cww2.assign(vv.begin(), vv.end());
+	EXPECT_TRUE(cww2.compare(vv));
+
+}
+
+TEST(cow, access) {
+	std::vector<int> vv(5, 1);
+	std::vector<int> vv2(15, 2);
+
+	auto cw = cow_vector<int, 10>(5, 1);
+	auto cw2 = cow_vector<int, 10>(15, 2);
+
+	auto cww = cow_vector<int, 10>(7);
+	cww = cw;
+	EXPECT_TRUE(cww.compare(vv));
+	EXPECT_TRUE(cww.same_remote(cw));
+
+	auto cww2 = cow_vector<int, 10>(71, 6);
+	cww2 = cw2;
+	EXPECT_TRUE(cww2.compare(vv2));
+	EXPECT_TRUE(cww2.same_remote(cw2));
+
+	cw[3] = vv[3] = 5;
+	EXPECT_TRUE(cw.compare(vv));
+	vv[3] = 1;
+	EXPECT_TRUE(cww.compare(vv));
+
+	cw2[7] = vv2[7] = 7;
+	EXPECT_TRUE(cw2.compare(vv2));
+	EXPECT_FALSE(cww2.same_remote(cw2));
+}
+
+TEST(cow, access_const) {
+	std::vector<int> vv(5, 1);
+	std::vector<int> vv2(15, 2);
+
+	const auto cw = cow_vector<int, 10>(5, 1);
+	const auto cw2 = cow_vector<int, 10>(15, 2);
+
+	auto cww = cow_vector<int, 10>(7);
+	cww = cw;
+	EXPECT_TRUE(cww.compare(vv));
+	EXPECT_TRUE(cww.same_remote(cw));
+
+	auto cww2 = cow_vector<int, 10>(71, 6);
+	cww2 = cw2;
+	EXPECT_TRUE(cww2.compare(vv2));
+	EXPECT_TRUE(cww2.same_remote(cw2));
+
+	EXPECT_TRUE(cw[3] == vv[3]);
+
+	EXPECT_TRUE(vv2[11] == cw2[11]);
+	EXPECT_TRUE(cww2.same_remote(cw2));
+}
+
+TEST(cow, front) {
+	std::vector<int> vv( { 1, 2, 3, 4, 5 });
+	std::vector<int> vv2( { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+
+	auto cw = cow_vector<int, 10>();
+	cw.assign(vv.begin(), vv.end());
+
+	auto cw2 = cow_vector<int, 10>();
+	cw2.assign(vv2.begin(), vv2.end());
+
+	auto cww = cw;
+	auto cww2 = cw2;
+
+	cww.front() = vv.front() = 7;
+	EXPECT_TRUE(cww.compare(vv));
+	EXPECT_FALSE(!cww.is_local() && cww.same_remote(cw));
+
+	cww2.front() = vv2.front() = 70;
+
+	EXPECT_TRUE(cww2.compare(vv2));
+	EXPECT_FALSE(!cww2.is_local() && cww2.same_remote(cw2));
+}
+
+TEST(cow, back) {
+	std::vector<int> vv( { 1, 2, 3, 4, 5 });
+	std::vector<int> vv2( { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+
+	auto cw = cow_vector<int, 10>();
+	cw.assign(vv.begin(), vv.end());
+
+	auto cw2 = cow_vector<int, 10>();
+	cw2.assign(vv2.begin(), vv2.end());
+
+	auto cww = cw;
+	auto cww2 = cw2;
+
+	cww.back() = vv.back() = 7;
+	EXPECT_TRUE(cww.compare(vv));
+	EXPECT_FALSE(!cww.is_local() && cww.same_remote(cw));
+
+	cww2.back() = vv2.back() = 70;
+
+	EXPECT_TRUE(cww2.compare(vv2));
+	EXPECT_FALSE(!cww2.is_local() && cww2.same_remote(cw2));
+}
+
+TEST(cow, iterators) {
+	std::vector<int> vv( { 1, 2, 3, 4, 5 });
+	std::vector<int> vv2( { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+
+	auto cw = cow_vector<int, 10>();
+	cw.assign(vv.begin(), vv.end());
+
+	auto cw2 = cow_vector<int, 10>();
+	cw2.assign(vv2.begin(), vv2.end());
+
+	auto cww = cw;
+	auto cww2 = cw2;
+
+	std::vector<int> v(cww.begin(), cww.end());
+	EXPECT_EQ(vv, v);
+	EXPECT_FALSE(!cww.is_local() && cww.same_remote(cw));
+
+	std::vector<int> v2(cww2.begin(), cww2.end());
+	EXPECT_EQ(vv2, v2);
+	EXPECT_FALSE(!cww2.is_local() && cww2.same_remote(cw2));
+}
+
+TEST(cow, const_iterators) {
+	std::vector<int> vv( { 1, 2, 3, 4, 5 });
+	std::vector<int> vv2( { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+
+	auto cw = cow_vector<int, 10>();
+	cw.assign(vv.begin(), vv.end());
+
+	auto cw2 = cow_vector<int, 10>();
+	cw2.assign(vv2.begin(), vv2.end());
+
+	const auto cww = cw;
+	const auto cww2 = cw2;
+
+	std::vector<int> v(cww.begin(), cww.end());
+	EXPECT_EQ(vv, v);
+	EXPECT_TRUE(cww.is_local() || cww.same_remote(cw));
+
+	std::vector<int> v2(cww2.begin(), cww2.end());
+	EXPECT_EQ(vv2, v2);
+	EXPECT_TRUE(cww2.is_local() || cww2.same_remote(cw2));
+}
+
+TEST(cow, size) {
+	std::vector<int> vv( { 1, 2, 3, 4, 5 });
+	std::vector<int> vv2( { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+
+	auto cw = cow_vector<int, 10>();
+	cw.assign(vv.begin(), vv.end());
+
+	auto cw2 = cow_vector<int, 10>();
+	cw2.assign(vv2.begin(), vv2.end());
+
+	auto cww = cw;
+	auto cww2 = cw2;
+
+	EXPECT_EQ(5UL, cww.size());
+	EXPECT_EQ(15UL, cww2.size());
+	EXPECT_TRUE(cww.is_local() || cww.same_remote(cw));
+	EXPECT_TRUE(cww2.is_local() || cww2.same_remote(cw2));
+}
+
+TEST(cow, capacity) {
+	std::vector<int> vv( { 1, 2, 3, 4, 5 });
+	std::vector<int> vv2( { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+
+	auto cw = cow_vector<int, 10>();
+	cw.assign(vv.begin(), vv.end());
+
+	auto cw2 = cow_vector<int, 10>();
+	cw2.assign(vv2.begin(), vv2.end());
+
+	auto cww = cw;
+	auto cww2 = cw2;
+
+	EXPECT_EQ(10UL, cww.capacity());
+//	EXPECT_EQ(15UL, cww2.capacity());
+	EXPECT_TRUE(cww.is_local() || cww.same_remote(cw));
+	EXPECT_TRUE(cww2.is_local() || cww2.same_remote(cw2));
+}
+
+TEST(cow, resize) {
+	std::vector<int> vv( { 1, 2, 3, 4, 5 });
+	std::vector<int> vv2( { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+	const auto vvt = vv;
+	const auto vvt2 = vv2;
+
+	auto cw = cow_vector<int, 10>();
+	cw.assign(vv.begin(), vv.end());
+
+	auto cw2 = cow_vector<int, 10>();
+	cw2.assign(vv2.begin(), vv2.end());
+
+	auto cww = cw;
+	auto cww2 = cw2;
+
+	cww.resize(3);
+	vv.resize(3);
+	EXPECT_TRUE(cww.compare(vv));
+	EXPECT_TRUE(cww.is_local());
+	EXPECT_EQ(3, cww.size());
+
+	cww = cw;
+	vv = vvt;
+	cww.resize(11);
+	vv.resize(11);
+	EXPECT_TRUE(cww.compare(vv));
+	EXPECT_FALSE(!cww.is_local() && cww.same_remote(cw));
+	EXPECT_EQ(11, cww.size());
+
+	cww = cw;
+	vv = vvt;
+	cww.resize(11, 9);
+	vv.resize(11, 9);
+	EXPECT_TRUE(cww.compare(vv));
+	EXPECT_FALSE(!cww.is_local() && cww.same_remote(cw));
+	EXPECT_EQ(11, cww.size());
+
+	cww2.resize(3);
+	vv2.resize(3);
+	EXPECT_TRUE(cww2.compare(vv2));
+	EXPECT_TRUE(cww2.is_local());
+	EXPECT_EQ(3, cww2.size());
+
+	cww2 = cw2;
+	vv2 = vvt2;
+	cww2.resize(17);
+	vv2.resize(17);
+	EXPECT_TRUE(cww2.compare(vv2));
+	EXPECT_FALSE(!cww2.is_local() && cww2.same_remote(cw2));
+	EXPECT_EQ(17, cww2.size());
+
+	cww2 = cw2;
+	vv2 = vvt2;
+	cww2.resize(17, 9);
+	vv2.resize(17, 9);
+	EXPECT_TRUE(cww2.compare(vv2));
+	EXPECT_FALSE(!cww2.is_local() && cww2.same_remote(cw2));
+	EXPECT_EQ(17, cww2.size());
+}
+
+TEST(cow, reserve) {
+	std::vector<int> vv( { 1, 2, 3, 4, 5 });
+	std::vector<int> vv2( { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+	const auto vvt = vv;
+	const auto vvt2 = vv2;
+
+	auto cw = cow_vector<int, 10>();
+	cw.assign(vv.begin(), vv.end());
+
+	auto cw2 = cow_vector<int, 10>();
+	cw2.assign(vv2.begin(), vv2.end());
+
+	auto cww = cw;
+	auto cww2 = cw2;
+	cww.reserve(7);
+	EXPECT_TRUE(cww.capacity() >= 7);
+	cww.reserve(13);
+	EXPECT_TRUE(cww.capacity() >= 13);
+	cww2.reserve(21);
+	EXPECT_TRUE(cww2.capacity() >= 21);
+	EXPECT_FALSE(!cww2.is_local() && cww2.same_remote(cw2));
+}
+
+TEST(cow, shrink) {
+	std::vector<int> vv( { 1, 2, 3, 4, 5 });
+	std::vector<int> vv2( { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+	const auto vvt = vv;
+	const auto vvt2 = vv2;
+
+	auto cw = cow_vector<int, 10>();
+	cw.assign(vv.begin(), vv.end());
+
+	auto cw2 = cow_vector<int, 10>();
+	cw2.assign(vv2.begin(), vv2.end());
+
+	auto cww = cw;
+	auto cww2 = cw2;
+
+	cww.reserve(11);
+	EXPECT_TRUE(cww.capacity() >= 11);
+	cww.shrink_to_fit();
+	EXPECT_TRUE(cww.is_local());
+
+	cww2.shrink_to_fit();
+	EXPECT_FALSE(!cww2.is_local() && cww2.same_remote(cw2));
+
+	cww2.reserve(21);
+	EXPECT_TRUE(cww2.capacity() >= 21);
+	EXPECT_FALSE(!cww2.is_local() && cww2.same_remote(cw2));
+	cww2.shrink_to_fit();
+	EXPECT_TRUE(cww2.capacity() == 15);
+}
+
+TEST(cow, insert) {
+	// TODO
+}
+
+TEST(cow, append) {
+	// TODO
+}
+
+TEST(cow, push_back) {
+	// TODO
+}
+
+TEST(cow, pop_back) {
+	// TODO
+}
+
+TEST(cow, clear) {
+	// TODO
+}
+
+TEST(cow, fast_copy) {
+	// TODO
+}
+
+TEST(cow, random_input) {
+	// TODO
+}
+
 TEST(mlim, lims) {
 	big_integer a = std::numeric_limits<int>::min();
 	big_integer b = std::numeric_limits<int>::max();

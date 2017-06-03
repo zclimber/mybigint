@@ -30,7 +30,9 @@ datavec lshift(datavec const & lhs, size_t shiftsize) {
 	res.resize(shiftsize >> 5, 0);
 	shiftsize &= 31;
 	if (shiftsize == 0) {
-		res.insert(res.end(), lhs.begin(), lhs.end());
+		// TODO
+//		res.insert(res.end(), lhs.begin(), lhs.end());
+		res.append(lhs.begin(), lhs.end());
 	} else {
 		uxint carry = 0;
 		for (size_t i = 0; i < lhs.size(); i++) {
@@ -54,7 +56,9 @@ datavec rshift(datavec const & lhs, size_t shiftsize, bool rounding_mode) {
 	datavec res;
 	res.reserve(lhs.size() - discard); // 2^5 == 32
 	if (shiftsize == 0) {
-		res.insert(res.end(), lhs.begin() + discard, lhs.end());
+		// TODO
+//		res.insert(res.end(), lhs.begin() + discard, lhs.end());
+		res.append(lhs.begin() + discard, lhs.end());
 	} else {
 		uxint carry = 0;
 		if (rounding_mode) {
