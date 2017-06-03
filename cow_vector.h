@@ -159,12 +159,11 @@ public:
 			if(first != last) {
 				make_remote();
 				rem_data->insert(rem_data->end(), first, last);
-				return iterator(&*(rem_data->begin() + p));
+				return iterator(rem_data->data() + p);
 			} else {
 				return iterator(local_data + p);
 			}
 		} else {
-//			return iterator(&*rem_data->insert(rem_data->begin() + (pos - begin()), 0, 0));
 			return iterator(&*(rem_data->insert(rem_data->begin() + (pos - begin()), first, last)));
 		}
 	}
@@ -358,7 +357,7 @@ inline typename cow_vector<T, local_space>::iterator cow_vector<T, local_space>:
 	if (is_local()) {
 		return iterator(local_data);
 	} else {
-		return iterator(&*rem_data->begin());
+		return iterator(rem_data->data());
 	}
 }
 
@@ -367,7 +366,7 @@ inline typename cow_vector<T, local_space>::const_iterator cow_vector<T, local_s
 	if (is_local()) {
 		return const_iterator(local_data);
 	} else {
-		return const_iterator(&*rem_data->cbegin());
+		return const_iterator(rem_data->data());
 	}
 }
 
@@ -376,7 +375,7 @@ inline typename cow_vector<T, local_space>::const_iterator cow_vector<T, local_s
 	if (is_local()) {
 		return const_iterator(local_data);
 	} else {
-		return const_iterator(&*rem_data->cbegin());
+		return const_iterator(rem_data->data());
 	}
 }
 
@@ -386,7 +385,7 @@ inline typename cow_vector<T, local_space>::iterator cow_vector<T, local_space>:
 	if (is_local()) {
 		return iterator(local_data + local_size);
 	} else {
-		return iterator(&*rem_data->end());
+		return iterator(rem_data->data() + rem_data->size());
 	}
 }
 
@@ -395,7 +394,7 @@ inline typename cow_vector<T, local_space>::const_iterator cow_vector<T, local_s
 	if (is_local()) {
 		return const_iterator(local_data + local_size);
 	} else {
-		return const_iterator(&*rem_data->cend());
+		return const_iterator(rem_data->data() + rem_data->size());
 	}
 }
 
@@ -404,7 +403,7 @@ inline typename cow_vector<T, local_space>::const_iterator cow_vector<T, local_s
 	if (is_local()) {
 		return const_iterator(local_data + local_size);
 	} else {
-		return const_iterator(&*rem_data->cend());
+		return const_iterator(rem_data->data() + rem_data->size());
 	}
 }
 
@@ -469,7 +468,7 @@ inline typename cow_vector<T, local_space>::iterator cow_vector<T, local_space>:
 		}
 	} else {
 
-		return iterator(&*rem_data->insert(rem_data->begin() + (pos - begin()), value));
+		return iterator(&*(rem_data->insert(rem_data->begin() + (pos - begin()), value)));
 	}
 }
 
