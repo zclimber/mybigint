@@ -461,10 +461,6 @@ TEST(cow, shrink) {
 	EXPECT_TRUE(cww2.capacity() == 15);
 }
 
-TEST(cow, insert) {
-	// TODO
-}
-
 TEST(cow, append) {
 	// TODO
 }
@@ -1076,5 +1072,27 @@ TEST(correctness, mul_merge_randomized) {
 		big_integer b = merge_all(x);
 
 		EXPECT_TRUE(a == b);
+	}
+}
+
+TEST(cow_bigint, long_copy){
+	std::vector<big_integer> vec(100);
+	big_integer original(1000000000);
+	for(unsigned i = 0; i < 15; i++){
+		original *= original;
+	}
+	for(unsigned i = 0; i < 100; i++){
+		vec[i] = original;
+	}
+}
+
+TEST(cow_bigint, long_copy_b){
+	std::vector<big_integer> vec(100000);
+	big_integer original(1000000000);
+	for(unsigned i = 0; i < 15; i++){
+		original *= original;
+	}
+	for(unsigned i = 0; i < 100000; i++){
+		vec[i] = original;
 	}
 }

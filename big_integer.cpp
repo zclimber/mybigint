@@ -121,7 +121,7 @@ datavec & sum(datavec & lhs, datavec const & rhs) { // если можно менять старую 
 	lhs.reserve(std::max(lhs.size(), rhs.size()) + 1);
 	xint carry = 0;
 	for (size_t i = 0; i < std::min(lhs.size(), rhs.size()); i++) {
-		carry = carry + lhs[i] + rhs[i];
+		carry = carry + ((const datavec &)lhs)[i] + rhs[i];
 		lhs[i] = (carry & bitmask32);
 		carry >>= 32;
 	}
@@ -133,7 +133,7 @@ datavec & sum(datavec & lhs, datavec const & rhs) { // если можно менять старую 
 		}
 	} else {
 		for (size_t i = rhs.size(); i < lhs.size(); i++) {
-			carry = carry + lhs[i];
+			carry = carry + ((const datavec &)lhs)[i];
 			lhs[i] = (carry & bitmask32);
 			carry >>= 32;
 		}
@@ -388,10 +388,10 @@ bool big_integer::is_zero() const {
 	return this->data().size() == 1 && this->data()[0] == 0;
 }
 
-/*big_integer::big_integer(big_integer & other) {
- swap(data, other.data);
- sign = other.sign;
- }*/
+big_integer::big_integer(big_integer && other) {
+	swap(data(), other.data());
+	sign = other.sign;
+}
 
 big_integer::big_integer(datavec new_data) {
 	swap(data(), new_data);

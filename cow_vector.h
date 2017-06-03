@@ -21,39 +21,16 @@ static const unsigned int EMPTY = 777777777;
 template<typename T, unsigned int local_space>
 class cow_vector {
 
-#ifdef _free_space_debug
-	void fillfree() const {
-		T* ptr = const_cast<T*>(local_data);
-		if (local_size == REMOTE) {
-			std::fill(ptr, ptr + local_space, EMPTY);
-		} else {
-			std::fill(ptr + local_size, ptr + local_space, EMPTY);
-		}
-	}
-#else
-	void fillfree() const {}
-#endif
-
-public:
 	void assert_correctness() const {
 		assert(local_size == REMOTE || local_size <= local_space);
 		if (local_size == REMOTE) {
 			assert(rem_data.use_count() >= 1);
-#ifdef _free_space_debug
-			for (unsigned int i = 0; i < local_space; i++) {
-				assert(local_data[i] == EMPTY);
-			}
-#endif
 		} else {
-#ifdef _free_space_debug
-			for (unsigned int i = local_size + 1; i < local_space; i++) {
-				assert(local_data[i] == EMPTY);
-			}
-#endif
 			assert(rem_data.use_count() == 0);
 		}
 	}
 
+public:
 	bool compare(const std::vector<T> & other) const {
 		assert_correctness();
 		if (is_local()) {
@@ -69,31 +46,29 @@ public:
 	bool same_remote(const cow_vector<T, local_space> & other) const {
 		return (rem_data.use_count() == 0 && other.rem_data.use_count() == 0) || rem_data == other.rem_data;
 	}
-
+private:
 	std::shared_ptr<std::vector<T>> rem_data;
 	T local_data[local_space];
 	unsigned int local_size;
 	static const unsigned int REMOTE = (unsigned int) -1;
+public:
 	bool is_local() const {
-		fillfree();
+
 		return local_size != REMOTE;
 	}
+private:
 	void unlink() {
-		fillfree();
 		if (!is_local() && rem_data.use_count() > 1) {
 			rem_data = std::make_shared<std::vector<T>>(*rem_data);
 		}
 	}
 	void make_remote() {
-		fillfree();
 		if (is_local()) {
 			rem_data = std::make_shared<std::vector<T>>(local_data, local_data + local_size);
 			local_size = REMOTE;
 		}
-		fillfree();
 	}
 	void try_make_local(unsigned int reserve = local_space / 2) {
-		fillfree();
 		if (!is_local() && size() + reserve <= local_space) {
 			local_size = size();
 			std::move(rem_data->begin(), rem_data->end(), local_data);
@@ -128,7 +103,7 @@ public:
 					std::is_base_of<std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>::value>::type>
 	void assign(InputIt first, InputIt last) {
 		local_size = 0;
-		fillfree();
+
 		rem_data.reset();
 		while (first != last && local_size < local_space) {
 			local_data[local_size] = *first;
@@ -227,7 +202,7 @@ void swap(cow_vector<T, local_space>& lhs, cow_vector<T, local_space>& rhs);
 template<typename T, unsigned int local_space>
 inline cow_vector<T, local_space>::cow_vector() {
 	local_size = 0;
-	fillfree();
+
 }
 
 template<typename T, unsigned int local_space>
@@ -239,7 +214,7 @@ inline cow_vector<T, local_space>::cow_vector(size_t size) {
 		local_size = -1;
 		rem_data = std::make_shared<std::vector<T>>(size);
 	}
-	fillfree();
+
 }
 
 template<typename T, unsigned int local_space>
@@ -251,7 +226,7 @@ inline cow_vector<T, local_space>::cow_vector(size_t size, const T& value) {
 		local_size = -1;
 		rem_data = std::make_shared<std::vector<T>>(size, value);
 	}
-	fillfree();
+
 }
 
 template<typename T, unsigned int local_space>
@@ -262,7 +237,7 @@ inline cow_vector<T, local_space>::cow_vector(const cow_vector& other) {
 	} else {
 		rem_data = other.rem_data;
 	}
-	fillfree();
+
 }
 
 template<typename T, unsigned int local_space>
@@ -273,7 +248,7 @@ inline cow_vector<T, local_space>::cow_vector(cow_vector&& other) {
 	} else {
 		rem_data = other.rem_data;
 	}
-	fillfree();
+
 }
 
 typedef cow_vector<unsigned int, 4> cw;
@@ -287,7 +262,7 @@ inline cow_vector<T, local_space>& cow_vector<T, local_space>::operator =(const 
 	} else {
 		rem_data = other.rem_data;
 	}
-	fillfree();
+
 	return *this;
 }
 
@@ -300,7 +275,7 @@ inline cow_vector<T, local_space>& cow_vector<T, local_space>::operator =(cow_ve
 	} else {
 		rem_data = other.rem_data;
 	}
-	fillfree();
+
 	return *this;
 }
 
@@ -314,13 +289,13 @@ inline void cow_vector<T, local_space>::assign(size_t count, const T& value) {
 		local_size = -1;
 		rem_data = std::make_shared<std::vector<T>>(count, value);
 	}
-	fillfree();
+
 }
 
 template<typename T, unsigned int local_space>
 inline T& cow_vector<T, local_space>::operator [](size_t _n) {
 	unlink();
-	fillfree();
+
 	if (is_local()) {
 		return local_data[_n];
 	} else {
@@ -340,7 +315,7 @@ inline const T& cow_vector<T, local_space>::operator [](size_t _n) const {
 template<typename T, unsigned int local_space>
 inline T& cow_vector<T, local_space>::front() {
 	unlink();
-	fillfree();
+
 	if (is_local()) {
 		return local_data[0];
 	} else {
@@ -350,7 +325,7 @@ inline T& cow_vector<T, local_space>::front() {
 
 template<typename T, unsigned int local_space>
 inline const T& cow_vector<T, local_space>::front() const {
-	fillfree();
+
 	if (is_local()) {
 		return local_data[0];
 	} else {
@@ -361,7 +336,7 @@ inline const T& cow_vector<T, local_space>::front() const {
 template<typename T, unsigned int local_space>
 inline T& cow_vector<T, local_space>::back() {
 	unlink();
-	fillfree();
+
 	if (is_local()) {
 		return local_data[local_size - 1];
 	} else {
@@ -381,7 +356,6 @@ inline const T& cow_vector<T, local_space>::back() const {
 template<typename T, unsigned int local_space>
 inline typename cow_vector<T, local_space>::iterator cow_vector<T, local_space>::begin() {
 	unlink();
-	fillfree();
 	if (is_local()) {
 		return iterator(local_data);
 	} else {
@@ -491,11 +465,11 @@ inline typename cow_vector<T, local_space>::iterator cow_vector<T, local_space>:
 				local_data[i] = std::move(local_data[i - 1]);
 			}
 			local_data[d] = value;
-			fillfree();
+
 			return iterator(local_data + d);
 		}
 	} else {
-		fillfree();
+
 		return iterator(&*rem_data->insert(rem_data->begin() + (pos - begin()), value));
 	}
 }
@@ -513,11 +487,11 @@ inline typename cow_vector<T, local_space>::iterator cow_vector<T, local_space>:
 				local_data[i] = std::move(local_data[i - 1]);
 			}
 			local_data[d] = value;
-			fillfree();
+
 			return iterator(local_data + d);
 		}
 	} else {
-		fillfree();
+
 		return iterator(&*rem_data->insert(rem_data->begin() + (pos - begin()), value));
 	}
 }
@@ -537,11 +511,11 @@ inline typename cow_vector<T, local_space>::iterator cow_vector<T, local_space>:
 			}
 			std::fill(local_data + d, local_data + d + count, value);
 			local_data[d] = value;
-			fillfree();
+
 			return iterator(local_data + d);
 		}
 	} else {
-		fillfree();
+
 		return iterator(&*rem_data->insert(rem_data->begin() + (pos - begin()), count, value));
 	}
 }
@@ -572,7 +546,7 @@ inline void cow_vector<T, local_space>::push_back(const T& value) {
 		} else {
 			local_data[local_size++] = value;
 		}
-		fillfree();
+
 	} else {
 		rem_data->push_back(value);
 	}
@@ -588,7 +562,7 @@ inline void cow_vector<T, local_space>::push_back(T&& value) {
 		} else {
 			local_data[local_size++] = value;
 		}
-		fillfree();
+
 	} else {
 		rem_data->push_back(value);
 	}
@@ -603,7 +577,7 @@ inline void cow_vector<T, local_space>::pop_back() {
 		rem_data->pop_back();
 		try_make_local();
 	}
-	fillfree();
+
 }
 
 template<typename T, unsigned int local_space>
@@ -623,7 +597,7 @@ inline void cow_vector<T, local_space>::resize(size_t count) {
 		rem_data->resize(count);
 		try_make_local();
 	}
-	fillfree();
+
 }
 
 template<typename T, unsigned int local_space>
@@ -643,7 +617,7 @@ inline void cow_vector<T, local_space>::resize(size_t count, const T& value) {
 		rem_data->resize(count, value);
 		try_make_local();
 	}
-	fillfree();
+
 }
 
 template<typename T, unsigned int local_space>

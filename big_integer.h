@@ -21,9 +21,9 @@ typedef cow_vector<eint, 5> datavec;
 
 struct num_storage {
 	datavec data;
-	const datavec & get_readable() const;
-	datavec & get_assignable();
-	datavec & get_modifiable();
+	const datavec & read() const;
+	datavec & assign();
+	datavec & modify();
 	datavec get_copy() const;
 	datavec & operator()() {
 		return data;
@@ -36,7 +36,7 @@ struct num_storage {
 struct big_integer {
 	big_integer(); //
 	big_integer(big_integer const& other); //
-//    big_integer(big_integer & other); //
+	big_integer(big_integer && other); //
 	big_integer(int a); //
 	explicit big_integer(std::string const& str); //
 //    ~big_integer(); // автосгенерированный пойдет
