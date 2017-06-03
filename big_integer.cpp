@@ -13,6 +13,16 @@ const uxint bitmask32 = (1LL << 32) - 1;
 
 //std::ofstream cdb("debug_output.txt", std::ios::out);
 
+template<class T>
+void append_vec(std::vector<eint> & vec, T begin, T end) {
+	vec.insert(vec.end(), begin, end);
+}
+
+template<class T, class U, unsigned space>
+void append_vec(cow_vector<U, space> & vec, T begin, T end) {
+	vec.append(begin, end);
+}
+
 void trim_data(datavec & lhs) {
 	while (lhs.size() > 1 && lhs.back() == 0) {
 		lhs.pop_back();
@@ -30,9 +40,7 @@ datavec lshift(datavec const & lhs, size_t shiftsize) {
 	res.resize(shiftsize >> 5, 0);
 	shiftsize &= 31;
 	if (shiftsize == 0) {
-		// TODO
-//		res.insert(res.end(), lhs.begin(), lhs.end());
-		res.append(lhs.begin(), lhs.end());
+		append_vec(res, lhs.begin(), lhs.end());
 	} else {
 		uxint carry = 0;
 		for (size_t i = 0; i < lhs.size(); i++) {
@@ -56,9 +64,7 @@ datavec rshift(datavec const & lhs, size_t shiftsize, bool rounding_mode) {
 	datavec res;
 	res.reserve(lhs.size() - discard); // 2^5 == 32
 	if (shiftsize == 0) {
-		// TODO
-//		res.insert(res.end(), lhs.begin() + discard, lhs.end());
-		res.append(lhs.begin() + discard, lhs.end());
+		append_vec(res, lhs.begin() + discard, lhs.end());
 	} else {
 		uxint carry = 0;
 		if (rounding_mode) {
@@ -121,7 +127,7 @@ datavec & sum(datavec & lhs, datavec const & rhs) { // если можно мен€ть старую 
 	lhs.reserve(std::max(lhs.size(), rhs.size()) + 1);
 	xint carry = 0;
 	for (size_t i = 0; i < std::min(lhs.size(), rhs.size()); i++) {
-		carry = carry + ((const datavec &)lhs)[i] + rhs[i];
+		carry = carry + ((const datavec &) lhs)[i] + rhs[i];
 		lhs[i] = (carry & bitmask32);
 		carry >>= 32;
 	}
@@ -133,7 +139,7 @@ datavec & sum(datavec & lhs, datavec const & rhs) { // если можно мен€ть старую 
 		}
 	} else {
 		for (size_t i = rhs.size(); i < lhs.size(); i++) {
-			carry = carry + ((const datavec &)lhs)[i];
+			carry = carry + ((const datavec &) lhs)[i];
 			lhs[i] = (carry & bitmask32);
 			carry >>= 32;
 		}
@@ -335,7 +341,7 @@ datavec to_complement(big_integer const & src) {
 		for (size_t i = 0; i < rs.size(); i++) {
 			rs[i] ^= bitmask32;
 		}
-		rs = sum(rs, datavec(1, 1)); // короче с утра разберусь. Ќадеюсь(((
+		rs = sum(rs, datavec(1, 1));
 	}
 	rs.push_back(eint(0 - src.sign));
 	return rs;

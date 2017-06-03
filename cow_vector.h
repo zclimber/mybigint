@@ -15,7 +15,6 @@
 
 using std::size_t;
 
-//#define _free_space_debug
 static const unsigned int EMPTY = 777777777;
 
 template<typename T, unsigned int local_space>
@@ -595,7 +594,6 @@ inline void cow_vector<T, local_space>::resize(size_t count) {
 		}
 	} else {
 		rem_data->resize(count);
-		try_make_local();
 	}
 
 }

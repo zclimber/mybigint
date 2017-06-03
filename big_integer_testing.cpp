@@ -462,27 +462,87 @@ TEST(cow, shrink) {
 }
 
 TEST(cow, append) {
-	// TODO
 }
 
 TEST(cow, push_back) {
-	// TODO
+	std::vector<int> vv( { 1, 2, 3, 4, 5 });
+	std::vector<int> vv2( { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+	const auto vvt = vv;
+	const auto vvt2 = vv2;
+
+	auto cw = cow_vector<int, 10>();
+	cw.assign(vv.begin(), vv.end());
+
+	auto cw2 = cow_vector<int, 10>();
+	cw2.assign(vv2.begin(), vv2.end());
+
+	auto cww = cw;
+	auto cww2 = cw2;
+
+	for (int i = 0; i < 10; i++) {
+		cww.push_back(i * 2);
+		vv.push_back(i * 2);
+		EXPECT_TRUE(cww.compare(vv));
+		cww2.push_back(i * 2);
+		vv2.push_back(i * 2);
+		EXPECT_TRUE(cww2.compare(vv2));
+	}
 }
 
 TEST(cow, pop_back) {
-	// TODO
+	std::vector<int> vv( { 1, 2, 3, 4, 5 });
+	std::vector<int> vv2( { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+	const auto vvt = vv;
+	const auto vvt2 = vv2;
+
+	auto cw = cow_vector<int, 10>();
+	cw.assign(vv.begin(), vv.end());
+
+	auto cw2 = cow_vector<int, 10>();
+	cw2.assign(vv2.begin(), vv2.end());
+
+	auto cww = cw;
+	auto cww2 = cw2;
+
+	for (int i = 0; i < 5; i++) {
+		cww.pop_back();
+		vv.pop_back();
+		EXPECT_TRUE(cww.compare(vv));
+		cww2.pop_back();
+		vv2.pop_back();
+		EXPECT_TRUE(cww2.compare(vv2));
+	}
 }
 
 TEST(cow, clear) {
-	// TODO
+	cow_vector<int, 10> test;
+	for (int i = 0; i < 100; i++) {
+		test.push_back(i);
+	}
+	test.clear();
+	EXPECT_TRUE(test.compare(std::vector<int>()));
 }
 
 TEST(cow, fast_copy) {
-	// TODO
+	cow_vector<cow_vector<int, 10>, 10> cwa;
+	cow_vector<int, 10> orig(1000, -1);
+	for (int i = 0; i < 10000; i++) {
+		cwa.push_back(orig);
+		EXPECT_TRUE(cwa[i].same_remote(orig));
+	}
 }
 
 TEST(cow, random_input) {
-	// TODO
+	std::vector<int> copy;
+	cow_vector<int, 10> test;
+	std::mt19937 mt;
+	for (int i = 0; i < 100000; i++) {
+		int it = mt();
+		copy.push_back(it);
+		test.push_back(it);
+		EXPECT_EQ(test.back() == copy.back());
+	}
+	EXPECT_TRUE(test.compare(copy));
 }
 
 TEST(mlim, lims) {
@@ -1075,24 +1135,24 @@ TEST(correctness, mul_merge_randomized) {
 	}
 }
 
-TEST(cow_bigint, long_copy){
-	std::vector<big_integer> vec(100);
+TEST(cow_bigint, long_copy_a) {
+	std::vector<big_integer> vec(10);
 	big_integer original(1000000000);
-	for(unsigned i = 0; i < 15; i++){
+	for (unsigned i = 0; i < 15; i++) {
 		original *= original;
 	}
-	for(unsigned i = 0; i < 100; i++){
+	for (unsigned i = 0; i < 10; i++) {
 		vec[i] = original;
 	}
 }
 
-TEST(cow_bigint, long_copy_b){
-	std::vector<big_integer> vec(100000);
+TEST(cow_bigint, long_copy_b) {
+	std::vector<big_integer> vec(10000);
 	big_integer original(1000000000);
-	for(unsigned i = 0; i < 15; i++){
+	for (unsigned i = 0; i < 15; i++) {
 		original *= original;
 	}
-	for(unsigned i = 0; i < 100000; i++){
+	for (unsigned i = 0; i < 10000; i++) {
 		vec[i] = original;
 	}
 }
